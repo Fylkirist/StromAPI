@@ -16,7 +16,10 @@ public class Program
 
         var app = builder.Build();
 
+        app.UseCors(options =>options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+
         using var scope = app.Services.CreateScope();
+
         app.UseStaticFiles();
         app.MapGet("/pris/{area}/{date}", async (HourlyPriceDB priceDb, string area, string date) =>
         {
