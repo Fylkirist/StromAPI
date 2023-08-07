@@ -14,6 +14,8 @@ public class Program
 
         builder.WebHost.UseWebRoot("wwwroot");
 
+        builder.Services.AddCors();
+
         var app = builder.Build();
 
         app.UseCors(options =>options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
