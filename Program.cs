@@ -35,7 +35,7 @@ public class Program
             async (HourlyPriceDB priceDb, string area) =>
             {
                 var priceList = await priceDb.Prices.Where(res => res.Area == area).ToArrayAsync();
-                return priceList.Sum(e => e.Price) / priceList.Length;
+                return Results.Ok(priceList.Sum(e => e.Price) / priceList.Length);
             });
 
         app.MapFallback(async context =>
