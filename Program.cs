@@ -35,6 +35,22 @@ public class Program
             return Results.Ok(prices);
         });
 
+        app.MapGet("/pris/{area}/{fromDate}/{toDate}",
+            async (HourlyPriceDB priceDb, string area, string fromDate, string toDate) =>
+            {
+                DateTime parsedFromDate = DateTime.Parse(fromDate);
+                DateOnly fromDateOnly = DateOnly.FromDateTime(parsedFromDate);
+
+                DateTime parsedToDate = DateTime.Parse(toDate);
+                DateOnly toDateOnly = DateOnly.FromDateTime(parsedToDate);
+
+                var prices = await priceDb.Prices
+                    .Where(res => res.Area == area && res.Date >= fromDateOnly && res.Date <= toDateOnly)
+                    .ToListAsync();
+
+                return Results.Ok(prices);
+            });
+
 
         app.MapGet("/pris/gjennomsnitt/{area}",
             async (HourlyPriceDB priceDb, string area) =>
@@ -54,7 +70,7 @@ public class Program
         var db = services.GetRequiredService<HourlyPriceDB>();
 
         var updater = new PriceUpdateTask(db);
-        await updater.LoadHistoricalPricesFromHks(5);
+        await updater.LoadHistoricalPricesFromHks(14);
 
         var dbUpdateScheduler = new TaskSchedulerService(updater.GetTomorrowsPricesFromHks, new TimeSpan(15, 30, 0));
 
