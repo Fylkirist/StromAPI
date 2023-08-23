@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StrømAPI.Models;
 using StrømAPI.Tasks;
+using Microsoft.ML;
 
 namespace StrømAPI;
 
@@ -21,6 +22,9 @@ public class Program
         app.UseCors(options =>options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 
         using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var db = services.GetRequiredService<HourlyPriceDB>();
+        var predictor = new PricePredictorService(db);
 
         app.UseStaticFiles();
         app.MapGet("/pris/{area}/{date}", async (HourlyPriceDB priceDb, string area, string date) =>
@@ -31,7 +35,10 @@ public class Program
             var prices = await priceDb.Prices
                 .Where(res => res.Area == area && res.Date == dateOnly)
                 .ToListAsync();
-
+            if (prices.Count == 0)
+            {
+                prices.AddRange(predictor.PredictDate(dateOnly,area));
+            }
             return Results.Ok(prices);
         });
 
@@ -47,6 +54,7 @@ public class Program
                 var prices = await priceDb.Prices
                     .Where(res => res.Area == area && res.Date >= fromDateOnly && res.Date <= toDateOnly)
                     .ToListAsync();
+
 
                 return Results.Ok(prices);
             });
@@ -66,14 +74,14 @@ public class Program
             await context.Response.SendFileAsync(Path.Combine(webRootPath, "index.html"));
         });
 
-        var services = scope.ServiceProvider;
-        var db = services.GetRequiredService<HourlyPriceDB>();
+        
 
         var updater = new PriceUpdateTask(db);
         await updater.LoadHistoricalPricesFromHks(14);
 
         var dbUpdateScheduler = new TaskSchedulerService(updater.GetTomorrowsPricesFromHks, new TimeSpan(15, 30, 0));
 
+        predictor.Initialize();
         await app.RunAsync();
     }
 }

@@ -9,6 +9,7 @@ public class HourlyPrice
     public TimeOnly Time { get; set; }
     public double Price { get; set; }
     public string Area { get; set; }
+    public bool Predicted { get; set; }
 
     public HourlyPrice(TimeOnly time,DateOnly date , double price, string area)
     {
@@ -16,6 +17,7 @@ public class HourlyPrice
         Time = time;
         Price = price;
         Area = area;
+        Predicted = false;
     }
     public HourlyPrice()
     {
