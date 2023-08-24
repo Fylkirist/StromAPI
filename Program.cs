@@ -63,6 +63,16 @@ public class Program
                     .Where(res => res.Area == area && res.Date >= fromDateOnly && res.Date <= toDateOnly)
                     .ToListAsync();
 
+                var dateIterator = fromDateOnly;
+                while (dateIterator < toDateOnly)
+                {
+                    var iterator = dateIterator;
+                    if (prices.All(res => res.Date != iterator))
+                    {
+                        prices.AddRange(predictor.PredictDate(dateIterator,area));
+                    }
+                    dateIterator = dateIterator.AddDays(1);
+                }
 
                 return Results.Ok(prices);
             });
