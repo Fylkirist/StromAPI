@@ -104,7 +104,7 @@ public class PriceUpdateTask
                             }
                             TimeOnly timeStamp = TimeOnly.FromDateTime(priceData.StartTime);
                             DateOnly dateStamp = DateOnly.FromDateTime(priceData.StartTime);
-                            prices.Add(new HourlyPrice(timeStamp, dateStamp, priceData.NOKPerKWh, area));
+                            prices.Add(new HourlyPrice(timeStamp, dateStamp, priceData.NOKPerKWh>=0? priceData.NOKPerKWh:0, area));
                         }
                     }
                     else

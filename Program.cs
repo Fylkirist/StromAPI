@@ -29,6 +29,10 @@ public class Program
         app.UseStaticFiles();
         app.MapGet("/pris/{area}/{date}", async (HourlyPriceDB priceDb, string area, string date) =>
         {
+            if (date.Length < 10)
+            {
+                return Results.BadRequest();
+            }
             DateTime parsedDate = DateTime.Parse(date);
             DateOnly dateOnly = DateOnly.FromDateTime(parsedDate);
 
@@ -45,6 +49,10 @@ public class Program
         app.MapGet("/pris/{area}/{fromDate}/{toDate}",
             async (HourlyPriceDB priceDb, string area, string fromDate, string toDate) =>
             {
+                if (fromDate.Length < 10 || toDate.Length < 10)
+                {
+                    return Results.BadRequest();
+                }
                 DateTime parsedFromDate = DateTime.Parse(fromDate);
                 DateOnly fromDateOnly = DateOnly.FromDateTime(parsedFromDate);
 
@@ -77,7 +85,7 @@ public class Program
         
 
         var updater = new PriceUpdateTask(db);
-        await updater.LoadHistoricalPricesFromHks(14);
+        await updater.LoadHistoricalPricesFromHks(50);
 
         var dbUpdateScheduler = new TaskSchedulerService(updater.GetTomorrowsPricesFromHks, new TimeSpan(15, 30, 0));
 

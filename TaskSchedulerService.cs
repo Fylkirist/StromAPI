@@ -4,7 +4,7 @@ public class TaskSchedulerService
 {
     private readonly Func<Task> _taskToExecuteAsync;
     private readonly TimeSpan _executionTime;
-    private Timer _timer;
+    private Timer? _timer;
 
     public TaskSchedulerService(Func<Task> taskToExecuteAsync, TimeSpan executionTime)
     {

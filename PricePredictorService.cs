@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.ML;
+﻿using Microsoft.ML;
 using Microsoft.ML.Data;
 using StrømAPI.Models;
 
@@ -19,14 +17,15 @@ public class PricePredictorService
         _timer = new Timer(RetrainModel);
         _dbContext = db;
     }
-    public static long GetUnixTimestamp(DateOnly date, TimeOnly time)
+    public static float GetUnixTimestamp(DateOnly date, TimeOnly time)
     {
         DateTime combinedDateTime = date.ToDateTime(time);
         DateTime epochDateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         TimeSpan timeSpan = combinedDateTime.ToUniversalTime() - epochDateTime;
-        return (long)timeSpan.TotalSeconds;
+        return (float)timeSpan.TotalSeconds;
     }
+
     private HourlyPriceTrainer[] LoadDataFromDb()
     {
         var data = _dbContext.Prices.ToArray();
@@ -43,6 +42,8 @@ public class PricePredictorService
     {
         var data = LoadDataFromDb();
 
+        Console.WriteLine($"Test price: {data[0].Price}");
+
         TrainModel(data);
 
         _timer.Change(1209600, Timeout.Infinite);
@@ -56,15 +57,19 @@ public class PricePredictorService
 
         var dataProcessPipeline =
             _mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName: nameof(HourlyPriceTrainer.Price))
-                .Append(_mlContext.Transforms.Categorical.OneHotEncoding(outputColumnName: "Date", inputColumnName: nameof(HourlyPriceTrainer.Date)))
                 .Append(_mlContext.Transforms.Categorical.OneHotEncoding(outputColumnName: "Area", inputColumnName: nameof(HourlyPriceTrainer.Area)))
-                .Append(_mlContext.Transforms.Concatenate("Features", "Date", "Area"));
+                .Append(_mlContext.Transforms.Concatenate("Features", nameof(HourlyPriceTrainer.Date), "Area"));
 
-        var trainer = _mlContext.Regression.Trainers.Sdca(labelColumnName: "Label", featureColumnName: "Features");
+        var trainer = _mlContext.Regression.Trainers.Sdca(labelColumnName: "Label", featureColumnName: "Features",maximumNumberOfIterations:100);
 
         var trainingPipeline = dataProcessPipeline.Append(trainer);
 
         _model = trainingPipeline.Fit(dataView);
+
+        IDataView predictions = _model.Transform(dataView);
+        var metrics = _mlContext.Regression.Evaluate(predictions, labelColumnName: "Label", scoreColumnName: "Score");
+
+        Console.WriteLine(metrics.LossFunction);
     }
 
     public void RetrainModel(object? state)
@@ -91,7 +96,8 @@ public class PricePredictorService
             hour = hour.Length > 1 ? hour : "0" + hour;
             TimeOnly time = TimeOnly.Parse($"{hour}:00");
             HourlyPriceTrainer input = new HourlyPriceTrainer(GetUnixTimestamp(date,time),area);
-            var predicted = engine.Predict(input);
+            HourlyPricePrediction predicted = new HourlyPricePrediction();
+            engine.Predict(input,ref predicted);
             var predData = new HourlyPrice(time, date, predicted.Price, area)
             {
                 Predicted = true
@@ -104,25 +110,25 @@ public class PricePredictorService
 
 public class HourlyPricePrediction
 {
-    [ColumnName("Label")] 
+    [ColumnName("Score")] 
     public float Price;
 }
 
 public class HourlyPriceTrainer
 {
-    public long Date { get; set; }
+    public float Date { get; set; }
     
     public float Price { get; set; }
     public string Area { get; set; }
 
-    public HourlyPriceTrainer(long date, float price, string area)
+    public HourlyPriceTrainer(float date, float price, string area)
     {
         Date = date;
         Price = price;
         Area = area;
     }
 
-    public HourlyPriceTrainer(long date, string area)
+    public HourlyPriceTrainer(float date, string area)
     {
         Date = date;
         Area = area;
