@@ -1,6 +1,8 @@
 ﻿using Microsoft.ML;
 using Microsoft.ML.Data;
 using StrømAPI.Models;
+using Microsoft.ML.AutoML;
+using static Microsoft.ML.DataOperationsCatalog;
 
 namespace StrømAPI;
 
@@ -55,21 +57,31 @@ public class PricePredictorService
     {
         var dataView = _mlContext.Data.LoadFromEnumerable(data);
 
-        var dataProcessPipeline =
-            _mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName: nameof(HourlyPriceTrainer.Price))
-                .Append(_mlContext.Transforms.Categorical.OneHotEncoding(outputColumnName: "Area", inputColumnName: nameof(HourlyPriceTrainer.Area)))
-                .Append(_mlContext.Transforms.Concatenate("Features", nameof(HourlyPriceTrainer.Date), "Area"));
+        TrainTestData trainValidationData = _mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
 
-        var trainer = _mlContext.Regression.Trainers.Sdca(labelColumnName: "Label", featureColumnName: "Features",maximumNumberOfIterations:100);
+        var column = new ColumnInformation();
+        column.CategoricalColumnNames.Add(nameof(HourlyPriceTrainer.Area));
+        column.NumericColumnNames.Add(nameof(HourlyPriceTrainer.Date));
 
-        var trainingPipeline = dataProcessPipeline.Append(trainer);
+        SweepablePipeline pipeline =
+            _mlContext.Auto().Featurizer(dataView, columnInformation: column)
+                .Append(_mlContext.Auto().Regression(labelColumnName: "Label"));
 
-        _model = trainingPipeline.Fit(dataView);
+        AutoMLExperiment experiment = _mlContext.Auto().CreateExperiment();
 
-        IDataView predictions = _model.Transform(dataView);
-        var metrics = _mlContext.Regression.Evaluate(predictions, labelColumnName: "Label", scoreColumnName: "Score");
+        experiment
+            .SetPipeline(pipeline)
+            .SetRegressionMetric(RegressionMetric.RSquared, labelColumn: "Label")
+            .SetTrainingTimeInSeconds(300)
+            .SetDataset(trainValidationData);
 
-        Console.WriteLine(metrics.LossFunction);
+        TrialResult result = experiment.Run();
+
+        _model = result.Model;
+
+        var error =_mlContext.Regression.Evaluate( _model.Transform(dataView),"Label");
+
+        Console.WriteLine(error.LossFunction);
     }
 
     public void RetrainModel(object? state)
@@ -90,34 +102,48 @@ public class PricePredictorService
     {
         var engine = _mlContext.Model.CreatePredictionEngine<HourlyPriceTrainer, HourlyPricePrediction>(_model);
         List<HourlyPrice> data = new List<HourlyPrice>(24);
+        HourlyPriceTrainer[] inputs = new HourlyPriceTrainer[24];
+        TimeOnly[] timeArray = new TimeOnly[24];
         for (int i = 0; i < 24; i++)
         {
             var hour = i.ToString();
             hour = hour.Length > 1 ? hour : "0" + hour;
             TimeOnly time = TimeOnly.Parse($"{hour}:00");
             HourlyPriceTrainer input = new HourlyPriceTrainer(GetUnixTimestamp(date,time),area);
-            HourlyPricePrediction predicted = new HourlyPricePrediction();
-            engine.Predict(input,ref predicted);
-            var predData = new HourlyPrice(time, date, predicted.Price, area)
-            {
-                Predicted = true
-            };
-            data.Add(predData);
+            inputs[i] = input;
+            timeArray[i] = time;
         }
+
+        var inputData = _mlContext.Data.LoadFromEnumerable(inputs);
+        var outputs = _model.Transform(inputData);
+
+        var current = 0;
+        foreach(var price in outputs.GetColumn<float>("Score").ToArray())
+        {
+            data.Add(new HourlyPrice(timeArray[current],date,price,area));
+            current++;
+        }
+
         return data;
     }
 }
 
 public class HourlyPricePrediction
 {
-    [ColumnName("Score")] 
-    public float Price;
+    [ColumnName("Score")]
+    public float Price { get; set; }
+
+    public HourlyPricePrediction()
+    {
+
+    }
 }
 
 public class HourlyPriceTrainer
 {
     public float Date { get; set; }
-    
+
+    [ColumnName("Label")]
     public float Price { get; set; }
     public string Area { get; set; }
 
@@ -132,5 +158,10 @@ public class HourlyPriceTrainer
     {
         Date = date;
         Area = area;
+    }
+
+    public HourlyPriceTrainer()
+    {
+
     }
 }
