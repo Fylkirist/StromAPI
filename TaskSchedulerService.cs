@@ -10,10 +10,9 @@ public class TaskSchedulerService
     {
         _taskToExecuteAsync = taskToExecuteAsync;
         _executionTime = executionTime;
-        ScheduleNextExecution();
     }
 
-    private void ScheduleNextExecution()
+    public void ScheduleNextExecution()
     {
         DateTime now = DateTime.Now;
         DateTime nextExecutionTime = now.Date.Add(_executionTime);

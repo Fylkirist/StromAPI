@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StrømAPI.Models;
 using StrømAPI.Tasks;
-using Microsoft.ML;
 
 namespace StrømAPI;
 
@@ -11,7 +10,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddDbContext<HourlyPriceDB>(opt => opt.UseInMemoryDatabase("HourlyPrices"));
+        builder.Services.AddDbContext<HourlyPriceDB>(opt => opt.UseSqlite("Data Source=PriceData.db"));
 
         builder.WebHost.UseWebRoot("wwwroot");
 
@@ -29,7 +28,7 @@ public class Program
         app.UseStaticFiles();
         app.MapGet("/pris/{area}/{date}", async (HourlyPriceDB priceDb, string area, string date) =>
         {
-            if (date.Length < 10)
+            if (date.Length != 10)
             {
                 return Results.BadRequest();
             }
@@ -41,6 +40,7 @@ public class Program
                 .ToListAsync();
             if (prices.Count == 0)
             {
+                Console.WriteLine($"No prices found for {dateOnly}: Predictor model used");
                 prices.AddRange(predictor.PredictDate(dateOnly,area));
             }
             return Results.Ok(prices);
@@ -49,7 +49,7 @@ public class Program
         app.MapGet("/pris/{area}/{fromDate}/{toDate}",
             async (HourlyPriceDB priceDb, string area, string fromDate, string toDate) =>
             {
-                if (fromDate.Length < 10 || toDate.Length < 10)
+                if (fromDate.Length != 10 || toDate.Length != 10)
                 {
                     return Results.BadRequest();
                 }
@@ -69,6 +69,7 @@ public class Program
                     var iterator = dateIterator;
                     if (prices.All(res => res.Date != iterator))
                     {
+                        Console.WriteLine($"No prices found for {iterator}: Predictor model used");
                         prices.AddRange(predictor.PredictDate(dateIterator,area));
                     }
                     dateIterator = dateIterator.AddDays(1);
@@ -95,9 +96,12 @@ public class Program
         
 
         var updater = new PriceUpdateTask(db);
-        await updater.LoadHistoricalPricesFromHks(50);
+        await updater.LoadHistoricalPricesFromHks(720);
+        if(DateTime.Now > new DateTime(DateTime.Today.Year,DateTime.Today.Month,DateTime.Today.Day,15,30,0))
+            await updater.GetTomorrowsPricesFromHks();
 
         var dbUpdateScheduler = new TaskSchedulerService(updater.GetTomorrowsPricesFromHks, new TimeSpan(15, 30, 0));
+        dbUpdateScheduler.ScheduleNextExecution();
 
         predictor.Initialize();
         await app.RunAsync();

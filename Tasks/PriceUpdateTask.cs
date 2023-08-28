@@ -19,6 +19,10 @@ public class PriceUpdateTask
     public async Task GetTomorrowsPricesFromHks()
     {
         var timestamp = DateTime.Today.AddDays(1);
+        if (_db.Prices.Any(p => p.Date == DateOnly.FromDateTime(timestamp)))
+        {
+            return;
+        }
         Console.WriteLine($"Fetching prices for {timestamp.Date}");
         var month = timestamp.Month.ToString().PadLeft(2, '0');
         var day = timestamp.Day.ToString().PadLeft(2, '0');
@@ -80,6 +84,10 @@ public class PriceUpdateTask
         for (int i = 0; i < daysBack; i++)
         {
             var timestamp = time.Subtract(TimeSpan.FromDays(i));
+            if (_db.Prices.Any(e=> e.Date == DateOnly.FromDateTime(timestamp)))
+            {
+                continue;
+            }
             var month = timestamp.Month.ToString().PadLeft(2, '0');
             var day = timestamp.Day.ToString().PadLeft(2, '0');
 
