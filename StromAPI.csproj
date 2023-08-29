@@ -10,18 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="wwwroot\public\**" />
-    <Compile Remove="wwwroot\src\**" />
-    <Content Remove="wwwroot\public\**" />
-    <Content Remove="wwwroot\src\**" />
-    <EmbeddedResource Remove="wwwroot\public\**" />
-    <EmbeddedResource Remove="wwwroot\src\**" />
-    <None Remove="wwwroot\public\**" />
-    <None Remove="wwwroot\src\**" />
+	  <None Update="wwwroot\**\*">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\index.html" />
+	  <None Include="wwwroot\index.html" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,7 +30,6 @@
     <PackageReference Include="Microsoft.ML" Version="2.0.1" />
     <PackageReference Include="Microsoft.ML.AutoML" Version="0.20.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>

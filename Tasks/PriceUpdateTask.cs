@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using StrømAPI.Models;
 using System.Text.Json.Serialization;
+using StromAPI.Models;
 
-namespace StrømAPI.Tasks;
+namespace StromAPI.Tasks;
 
 public class PriceUpdateTask
 {

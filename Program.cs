@@ -1,18 +1,24 @@
 using Microsoft.EntityFrameworkCore;
-using StrømAPI.Models;
-using StrømAPI.Tasks;
+using StromAPI.Models;
+using StromAPI.Tasks;
 
-namespace StrømAPI;
+namespace StromAPI;
 
 public class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        if (!Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")))
+        {
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+        }
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = args,
+            WebRootPath = "wwwroot"
+        });
 
         builder.Services.AddDbContext<HourlyPriceDB>(opt => opt.UseSqlite("Data Source=PriceData.db"));
-
-        builder.WebHost.UseWebRoot("wwwroot");
 
         builder.Services.AddCors();
 

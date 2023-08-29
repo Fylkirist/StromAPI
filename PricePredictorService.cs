@@ -1,11 +1,10 @@
 ﻿using Microsoft.ML;
-using Microsoft.ML.Data;
-using StrømAPI.Models;
 using Microsoft.ML.AutoML;
-using Microsoft.ML.Transforms.TimeSeries;
+using Microsoft.ML.Data;
+using StromAPI.Models;
 using static Microsoft.ML.DataOperationsCatalog;
 
-namespace StrømAPI;
+namespace StromAPI;
 
 public class PricePredictorService
 {

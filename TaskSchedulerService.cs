@@ -1,4 +1,4 @@
-﻿namespace StrømAPI;
+﻿namespace StromAPI;
 
 public class TaskSchedulerService
 {

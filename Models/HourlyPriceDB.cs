@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-namespace StrømAPI.Models;
+
+namespace StromAPI.Models;
 
 public class HourlyPriceDB : DbContext
 {

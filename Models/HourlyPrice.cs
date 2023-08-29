@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace StrømAPI.Models;
+namespace StromAPI.Models;
 public class HourlyPrice
 {
     [Key]
