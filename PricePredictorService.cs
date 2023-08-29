@@ -80,6 +80,8 @@ public class PricePredictorService
 
         SweepablePipeline pipeline =
             _mlContext.Auto().Featurizer(dataView, columnInformation: column)
+                .Append(_mlContext.Transforms.Categorical.OneHotEncoding(inputColumnName:nameof(HourlyPriceTrainer.Area),outputColumnName:nameof(HourlyPriceTrainer.Area)))
+                .Append(_mlContext.Transforms.Categorical.OneHotEncoding(inputColumnName: nameof(HourlyPriceTrainer.Time), outputColumnName: nameof(HourlyPriceTrainer.Time)))
                 .Append(_mlContext.Transforms.NormalizeMinMax(nameof(HourlyPriceTrainer.Date), nameof(HourlyPriceTrainer.Date)))
                 .Append(_mlContext.Auto().Regression(labelColumnName: "Label"));
 
@@ -88,7 +90,7 @@ public class PricePredictorService
         experiment
             .SetPipeline(pipeline)
             .SetRegressionMetric(RegressionMetric.RSquared, labelColumn: "Label")
-            .SetTrainingTimeInSeconds(450)
+            .SetTrainingTimeInSeconds(120)
             .SetDataset(trainValidationData);
 
         TrialResult result = experiment.Run();
@@ -133,7 +135,7 @@ public class PricePredictorService
             var hour = i.ToString();
             hour = hour.Length > 1 ? hour : "0" + hour;
             TimeOnly time = TimeOnly.Parse($"{hour}:00");
-            HourlyPriceTrainer input = new HourlyPriceTrainer(GetUnixTimestamp(date,earliestDate), areas[area], i,(int)date.DayOfWeek);
+            HourlyPriceTrainer input = new HourlyPriceTrainer(GetUnixTimestamp(date,earliestDate), areas[area], i);
             inputs[i] = input;
             timeArray[i] = time;
         }
