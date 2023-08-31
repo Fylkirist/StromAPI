@@ -97,7 +97,7 @@ public class PricePredictorService
         _model = result.Model;
 
         var error =_mlContext.Regression.Evaluate( _model.Transform(dataView),"Label");
-
+        
         Console.WriteLine(error.LossFunction);
     }
 

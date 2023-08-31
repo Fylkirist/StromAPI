@@ -8,10 +8,6 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        if (!Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")))
-        {
-            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
-        }
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             Args = args,
@@ -19,6 +15,7 @@ public class Program
         });
 
         builder.Services.AddDbContext<HourlyPriceDB>(opt => opt.UseSqlite("Data Source=PriceData.db"));
+        builder.Services.AddDbContext<MagazineStockDb>(opt => opt.UseSqlite("Data Source=MagazineStocks.db"));
 
         builder.Services.AddCors();
 
