@@ -9,15 +9,26 @@ namespace StromAPI.Models
         public DateOnly Date { get; set; }
         public int Area { get; set; }
         public string AreaType { get; set; }
-        public float Capacity { get; set; }
-        public float Filling { get; set; }
-        public float FillingFactor { get; set; }
-        public float FillingFactorLastWeek { get; set; }
-        public float FillingFactorChange { get; set; }
+        public double Capacity { get; set; }
+        public double Filling { get; set; }
+        public double FillingFactor { get; set; }
+        public double FillingFactorLastWeek { get; set; }
+        public double FillingFactorChange { get; set; }
 
         public MagazineStock()
         {
 
+        }
+        public MagazineStock(DateOnly date, int area, string areaType, double capacity, double filling, double fillingFactor, double fillingFactorLastWeek, double fillingFactorChange)
+        {
+            Date = date;
+            Area = area;
+            AreaType = areaType;
+            Capacity = capacity;
+            Filling = filling;
+            FillingFactor = fillingFactor;
+            FillingFactorLastWeek = fillingFactorLastWeek;
+            FillingFactorChange = fillingFactorChange;
         }
     }
 }

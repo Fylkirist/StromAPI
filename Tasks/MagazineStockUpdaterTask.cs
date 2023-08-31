@@ -1,4 +1,6 @@
 ﻿using StromAPI.Models;
+using System.Text.Json;
+using System.Xml;
 
 namespace StromAPI.Tasks;
 
@@ -11,21 +13,66 @@ public class MagazineStockUpdaterTask
     {
         _httpClient = new HttpClient();
         _db = db;
-        _httpClient.Timeout = new TimeSpan(10);
     }
 
-    public void UpdateHistoricalData()
+    public async Task UpdateHistoricalData()
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "https://biapi.nve.no/magasinstatistikk/api/Magasinstatistikk/HentOffentligData");
         
-        var response = _httpClient.SendAsync(request);
+        var response = await _httpClient.SendAsync(request);
 
+        var deserialized = await response.Content.ReadFromJsonAsync<MagazineStockData[]>();
+        if (deserialized == null)
+        {
+            Console.WriteLine("Magazine data fetch failed!");
+            return;
+        }
 
+        var counter = 0;
+        foreach (var data in deserialized)
+        {
+            if (!_db.MagazineStocks.Any(e => 
+                    e.Date == DateOnly.Parse(data.dato_Id) && 
+                    data.omrnr == e.Area && 
+                    data.omrType == e.AreaType))
+            {
+                counter++;
+                MagazineStock newData = new MagazineStock(DateOnly.Parse(data.dato_Id), data.omrnr, data.omrType, data.kapasitet_TWh, data.fylling_TWh, data.fyllingsgrad, data.fyllingsgrad_forrige_uke, data.endring_fyllingsgrad);
+                _db.Add(newData);
+            }
+        }
+
+        Console.WriteLine($"{counter} Magazine stock data points added!");
     }
 
-    public void UpdateDailyData()
+    public async Task UpdateWeeklyData()
     {
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://biapi.nve.no/magasinstatistikk/api/Magasinstatistikk/HentOffentligDataSisteUke");
 
+        var response = await _httpClient.SendAsync(request);
+
+        var deserialized = await response.Content.ReadFromJsonAsync<MagazineStockData[]>();
+        if (deserialized == null)
+        {
+            Console.WriteLine("Magazine data fetch failed!");
+            return;
+        }
+
+        var counter = 0;
+        foreach (var data in deserialized)
+        {
+            if (!_db.MagazineStocks.Any(e =>
+                    e.Date == DateOnly.Parse(data.dato_Id) &&
+                    data.omrnr == e.Area &&
+                    data.omrType == e.AreaType))
+            {
+                counter++;
+                MagazineStock newData = new MagazineStock(DateOnly.Parse(data.dato_Id),data.omrnr,data.omrType,data.kapasitet_TWh,data.fylling_TWh,data.fyllingsgrad,data.fyllingsgrad_forrige_uke,data.endring_fyllingsgrad);
+                _db.Add(newData);
+            }
+        }
+
+        Console.WriteLine($"{counter} Magazine stock data points added!");
     }
 }
 

@@ -27,6 +27,7 @@ public class Program
         var services = scope.ServiceProvider;
         var db = services.GetRequiredService<HourlyPriceDB>();
         var predictor = new PricePredictorService(db);
+        var magDb = services.GetRequiredService<MagazineStockDb>();
 
         app.UseStaticFiles();
         app.MapGet("/pris/{area}/{date}", async (HourlyPriceDB priceDb, string area, string date) =>
@@ -89,6 +90,14 @@ public class Program
                 return Results.Ok(priceList.Sum(e => e.Price) / priceList.Length);
             });
 
+        app.MapGet("/misc/magasin/{fromDate}/{toDate}",
+            async (MagazineStockDb stockDb, string fromDate, string toDate) =>
+            {
+                var parsedFromDate = DateOnly.Parse(fromDate);
+                var parsedToDate = DateOnly.Parse(toDate);
+                return Results.Ok(stockDb.MagazineStocks.All(e => e.Date>=parsedFromDate && e.Date<=parsedToDate));
+            });
+
         app.MapFallback(async context =>
         {
             var webRootPath = app.Environment.WebRootPath;
@@ -103,8 +112,15 @@ public class Program
         if(DateTime.Now > new DateTime(DateTime.Today.Year,DateTime.Today.Month,DateTime.Today.Day,15,30,0))
             await updater.GetTomorrowsPricesFromHks();
 
+        var magUpdater = new MagazineStockUpdaterTask(magDb);
+        await magUpdater.UpdateHistoricalData();
+        await magUpdater.UpdateWeeklyData();
+
         var dbUpdateScheduler = new TaskSchedulerService(updater.GetTomorrowsPricesFromHks, new TimeSpan(15, 30, 0));
         dbUpdateScheduler.ScheduleNextExecution();
+
+        var magUpdateScheduler = new TaskSchedulerService(magUpdater.UpdateWeeklyData, new TimeSpan(14,0,0,0));
+        magUpdateScheduler.ScheduleNextExecution();
 
         predictor.Initialize();
         await app.RunAsync();
