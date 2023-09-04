@@ -108,7 +108,7 @@ public class Program
         
 
         var updater = new PriceUpdateTask(db);
-        await updater.LoadHistoricalPricesFromHks(720);
+        await updater.LoadHistoricalPricesFromHks(14);
         if(DateTime.Now > new DateTime(DateTime.Today.Year,DateTime.Today.Month,DateTime.Today.Day,15,30,0))
             await updater.GetTomorrowsPricesFromHks();
 

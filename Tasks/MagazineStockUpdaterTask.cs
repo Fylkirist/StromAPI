@@ -43,6 +43,7 @@ public class MagazineStockUpdaterTask
         }
 
         Console.WriteLine($"{counter} Magazine stock data points added!");
+        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateWeeklyData()
@@ -73,6 +74,7 @@ public class MagazineStockUpdaterTask
         }
 
         Console.WriteLine($"{counter} Magazine stock data points added!");
+        await _db.SaveChangesAsync();
     }
 }
 
