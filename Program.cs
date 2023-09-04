@@ -95,7 +95,7 @@ public class Program
             {
                 var parsedFromDate = DateOnly.Parse(fromDate);
                 var parsedToDate = DateOnly.Parse(toDate);
-                return Results.Ok(stockDb.MagazineStocks.All(e => e.Date>=parsedFromDate && e.Date<=parsedToDate));
+                return Results.Ok(stockDb.MagazineStocks.Where(e => e.Date>=parsedFromDate && e.Date<=parsedToDate));
             });
 
         app.MapFallback(async context =>
